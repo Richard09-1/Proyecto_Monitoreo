@@ -1,82 +1,63 @@
-// server.js
 const express = require('express');
-const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
 const fs = require('fs');
 const path = require('path');
-const port = 3000;
+const app = express();
+const port = process.env.PORT || 3000;
 
-app.use(express.static('public'));
 app.use(express.json());
+app.use(express.static('public'));
 
-// Array para almacenar datos en memoria
-let datosHistoricos = [];
+// Store for the last 1000 readings
+let dataHistory = [];
+const MAX_HISTORY = 1000;
+let lastSaveTime = Date.now();
+const SAVE_INTERVAL = 30 * 60 * 1000; // 30 minutes in milliseconds
 
-// Crear carpeta para archivos si no existe
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)){
-    fs.mkdirSync(dataDir);
-}
-
-// Ruta para recibir datos del ESP32
 app.post('/datos', (req, res) => {
-  const datos = req.body;
-  const timestamp = new Date().toISOString();
-  
-  // Agregar timestamp a los datos
-  const datosConTiempo = {
-    ...datos,
-    timestamp
-  };
-  
-  // Guardar en memoria
-  datosHistoricos.push(datosConTiempo);
-  
-  // Mantener solo las últimas 1000 lecturas en memoria
-  if (datosHistoricos.length > 1000) {
-    datosHistoricos.shift();
-  }
-  
-  // Guardar en archivo
-  const logLine = `${timestamp},${datos.voltaje},${datos.corriente},${datos.potencia},${datos.posicion}\n`;
-  fs.appendFile(path.join(dataDir, 'datos.csv'), logLine, (err) => {
-    if (err) console.error('Error guardando datos:', err);
-  });
-  
-  // Emitir a clientes web
-  io.emit('actualizacion', datosConTiempo);
-  res.send({status: 'ok'});
+    const currentTime = new Date().toISOString();
+    const dataPoint = {
+        timestamp: currentTime,
+        ...req.body
+    };
+
+    // Add to real-time data
+    if (Date.now() - lastSaveTime >= SAVE_INTERVAL) {
+        dataHistory.push(dataPoint);
+        if (dataHistory.length > MAX_HISTORY) {
+            dataHistory.shift(); // Remove oldest entry if we exceed 1000
+        }
+        lastSaveTime = Date.now();
+        
+        // Save to file
+        const csvData = `${currentTime},${dataPoint.voltaje},${dataPoint.corriente},${dataPoint.potencia},${dataPoint['# vueltas']},${dataPoint[' % Bateria']}\n`;
+        fs.appendFile('data_history.csv', csvData, (err) => {
+            if (err) console.error('Error saving to file:', err);
+        });
+    }
+
+    res.status(200).send('Data received');
 });
 
-// Ruta para descargar datos
-app.get('/descargar', (req, res) => {
-  const formato = req.query.formato || 'csv';
-  const fileName = `datos_sensores.${formato}`;
-  
-  if (formato === 'csv') {
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
-    res.write('Timestamp,Voltaje(V),Corriente(mA),Potencia(mW),Posicion\n');
-    datosHistoricos.forEach(dato => {
-      res.write(`${dato.timestamp},${dato.voltaje},${dato.corriente},${dato.potencia},${dato.posicion}\n`);
-    });
-    res.end();
-  } else if (formato === 'txt') {
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
-    datosHistoricos.forEach(dato => {
-      res.write(`Tiempo: ${dato.timestamp}\n`);
-      res.write(`Voltaje: ${dato.voltaje}V\n`);
-      res.write(`Corriente: ${dato.corriente}mA\n`);
-      res.write(`Potencia: ${dato.potencia}mW\n`);
-      res.write(`Posición: ${dato.posicion}\n`);
-      res.write('------------------------\n');
-    });
-    res.end();
-  }
+// Endpoint to get historical data
+app.get('/history', (req, res) => {
+    res.json(dataHistory);
 });
 
-http.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
+// Endpoint to download CSV
+app.get('/download/csv', (req, res) => {
+    res.download('data_history.csv', 'solar_panel_data.csv');
+});
+
+// Endpoint to download TXT
+app.get('/download/txt', (req, res) => {
+    const txtContent = dataHistory.map(entry => 
+        `Time: ${entry.timestamp}, Voltage: ${entry.voltaje}V, Current: ${entry.corriente}mA, Power: ${entry.potencia}mW, Rotations: ${entry['# vueltas']}, Battery: ${entry[' % Bateria']}%`
+    ).join('\n');
+
+    fs.writeFileSync('data_export.txt', txtContent);
+    res.download('data_export.txt', 'solar_panel_data.txt');
+});
+
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
