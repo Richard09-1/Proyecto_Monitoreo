@@ -31,6 +31,7 @@
             border-radius: 12px;
             text-align: center;
             transition: transform 0.2s;
+            position: relative;
         }
         .data-card:hover {
             transform: scale(1.05);
@@ -57,14 +58,12 @@
             margin-top: 30px;
             height: 400px;
         }
-        #batteryChartContainer {
-            display: flex;
-            justify-content: center;
-            margin-top: 30px;
-        }
-        #batteryChart {
-            width: 250px;
-            height: 250px;
+        #batteryBar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 20px;
         }
     </style>
 </head>
@@ -94,7 +93,7 @@
         <div class="data-card">
             <h3>Battery</h3>
             <div id="battery" class="value">--</div>
-            <div>%</div>
+            <canvas id="batteryBar"></canvas>
         </div>
     </div>
 
@@ -102,10 +101,6 @@
 
     <div class="chart-container">
         <canvas id="dataChart"></canvas>
-    </div>
-
-    <div id="batteryChartContainer">
-        <canvas id="batteryChart"></canvas>
     </div>
 
     <script>
@@ -144,19 +139,32 @@
                 }
             });
 
-            const batteryCtx = document.getElementById('batteryChart').getContext('2d');
+            const batteryCtx = document.getElementById('batteryBar').getContext('2d');
             batteryChart = new Chart(batteryCtx, {
-                type: 'doughnut',
+                type: 'bar',
                 data: {
-                    labels: ['Used', 'Remaining'],
+                    labels: ['Battery'],
                     datasets: [{
-                        data: [0, 100],
-                        backgroundColor: ['#dc3545', '#28a745']
+                        data: [0],
+                        backgroundColor: ['#28a745']
                     }]
                 },
                 options: {
-                    responsive: true,
-                    cutout: '70%'
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            max: 100,
+                            min: 0,
+                            display: false
+                        },
+                        y: {
+                            display: false
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
                 }
             });
         }
@@ -180,10 +188,8 @@
                         lineChart.data.datasets[2].data = data.map(d => d.potencia);
                         lineChart.update();
 
-                        batteryChart.data.datasets[0].data = [
-                            100 - latest['Bateria'],
-                            latest['Bateria']
-                        ];
+                        batteryChart.data.datasets[0].data = [latest['Bateria']];
+                        batteryChart.data.datasets[0].backgroundColor = latest['Bateria'] > 20 ? '#28a745' : '#dc3545';
                         batteryChart.update();
                     }
                 })
