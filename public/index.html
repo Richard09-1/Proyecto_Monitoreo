@@ -127,7 +127,7 @@
                         document.getElementById('current').textContent = latest.corriente.toFixed(2);
                         document.getElementById('power').textContent = latest.potencia.toFixed(2);
                         document.getElementById('rotations').textContent = latest['# vueltas'];
-                        document.getElementById('battery').textContent = latest['% Bateria'].toFixed(1);
+                        document.getElementById('battery').textContent = latest['Bateria'].toFixed(1);
 
                         // Update chart
                         chart.data.labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
