@@ -3,227 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solar Panel Monitoring</title>
+    <title>Sensor Data Monitor</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f0f2f5;
-        }
-        .container {
             max-width: 1200px;
             margin: 0 auto;
-        }
-        .chart-container {
-            background: white;
-            border-radius: 10px;
             padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .metrics {
+        .data-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
         }
-        .metric-card {
-            background: white;
+        .data-card {
+            background: #f5f5f5;
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 8px;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .metric-value {
+        .value {
             font-size: 24px;
             font-weight: bold;
-            margin: 10px 0;
+            color: #333;
         }
-        .battery-indicator {
-            width: 100px;
-            height: 200px;
-            margin: 20px auto;
-            border: 3px solid #333;
-            border-radius: 10px;
-            position: relative;
+        .chart-container {
+            margin-top: 30px;
+            height: 400px;
         }
-        .battery-level {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            background: linear-gradient(to top, #4CAF50, #8BC34A);
-            transition: height 0.5s;
-            border-radius: 5px;
-        }
-        .download-buttons {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .download-btn {
-            background-color: #4CAF50;
-            color: white;
+        button {
             padding: 10px 20px;
+            background: #007bff;
+            color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
-            margin: 0 10px;
         }
-        .download-btn:hover {
-            background-color: #45a049;
+        button:hover {
+            background: #0056b3;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Solar Panel Monitoring System</h1>
-        
-        <div class="metrics">
-            <div class="metric-card">
-                <h3>Voltage</h3>
-                <div id="voltage" class="metric-value">--</div>
-                <div>Volts</div>
-            </div>
-            <div class="metric-card">
-                <h3>Current</h3>
-                <div id="current" class="metric-value">--</div>
-                <div>mA</div>
-            </div>
-            <div class="metric-card">
-                <h3>Power</h3>
-                <div id="power" class="metric-value">--</div>
-                <div>mW</div>
-            </div>
-            <div class="metric-card">
-                <h3>Rotations</h3>
-                <div id="rotations" class="metric-value">--</div>
-                <div>turns</div>
-            </div>
-            <div class="metric-card">
-                <h3>Battery</h3>
-                <div class="battery-indicator">
-                    <div id="battery-level" class="battery-level"></div>
-                </div>
-                <div id="battery-percentage" class="metric-value">--%</div>
-            </div>
+    <h1>Sensor Data Monitor</h1>
+    
+    <div class="data-container">
+        <div class="data-card">
+            <h3>Voltage</h3>
+            <div id="voltage" class="value">--</div>
+            <div>V</div>
         </div>
-
-        <div class="chart-container">
-            <canvas id="powerChart"></canvas>
+        <div class="data-card">
+            <h3>Current</h3>
+            <div id="current" class="value">--</div>
+            <div>mA</div>
         </div>
-
-        <div class="download-buttons">
-            <button onclick="downloadData('csv')" class="download-btn">Download CSV</button>
-            <button onclick="downloadData('txt')" class="download-btn">Download TXT</button>
+        <div class="data-card">
+            <h3>Power</h3>
+            <div id="power" class="value">--</div>
+            <div>mW</div>
+        </div>
+        <div class="data-card">
+            <h3>Rotations</h3>
+            <div id="rotations" class="value">--</div>
+        </div>
+        <div class="data-card">
+            <h3>Battery</h3>
+            <div id="battery" class="value">--</div>
+            <div>%</div>
         </div>
     </div>
 
+    <button onclick="downloadData()">Download Data</button>
+
+    <div class="chart-container">
+        <canvas id="dataChart"></canvas>
+    </div>
+
     <script>
-        let powerChart;
-        const MAX_DATA_POINTS = 50;
+        let chart;
 
         function initChart() {
-            const ctx = document.getElementById('powerChart').getContext('2d');
-            powerChart = new Chart(ctx, {
+            const ctx = document.getElementById('dataChart').getContext('2d');
+            chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: [],
-                    datasets: [{
-                        label: 'Voltage (V)',
-                        borderColor: 'rgb(255, 99, 132)',
-                        data: []
-                    }, {
-                        label: 'Current (mA)',
-                        borderColor: 'rgb(54, 162, 235)',
-                        data: []
-                    }, {
-                        label: 'Power (mW)',
-                        borderColor: 'rgb(75, 192, 192)',
-                        data: []
-                    }]
+                    datasets: [
+                        {
+                            label: 'Voltage (V)',
+                            borderColor: '#007bff',
+                            data: []
+                        },
+                        {
+                            label: 'Current (mA)',
+                            borderColor: '#28a745',
+                            data: []
+                        },
+                        {
+                            label: 'Power (mW)',
+                            borderColor: '#dc3545',
+                            data: []
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
-                    animation: false,
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Time'
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Value'
-                            }
-                        }
-                    }
+                    maintainAspectRatio: false
                 }
             });
         }
 
-        function updateChart(data) {
-            const timestamp = new Date(data.timestamp).toLocaleTimeString();
-            
-            powerChart.data.labels.push(timestamp);
-            powerChart.data.datasets[0].data.push(data.voltaje);
-            powerChart.data.datasets[1].data.push(data.corriente);
-            powerChart.data.datasets[2].data.push(data.potencia);
-
-            if (powerChart.data.labels.length > MAX_DATA_POINTS) {
-                powerChart.data.labels.shift();
-                powerChart.data.datasets.forEach(dataset => dataset.data.shift());
-            }
-
-            powerChart.update();
-        }
-
-        function updateMetrics(data) {
-            document.getElementById('voltage').textContent = data.voltaje.toFixed(2);
-            document.getElementById('current').textContent = data.corriente.toFixed(2);
-            document.getElementById('power').textContent = data.potencia.toFixed(2);
-            document.getElementById('rotations').textContent = data['# vueltas'];
-            document.getElementById('battery-percentage').textContent = data['Bateria'] + '%';
-            
-            const batteryLevel = document.getElementById('battery-level');
-            batteryLevel.style.height = data['Bateria'] + '%';
-            
-            // Update battery color based on level
-            const percentage = data['Bateria'];
-            if (percentage <= 20) {
-                batteryLevel.style.background = '#ff4444';
-            } else if (percentage <= 50) {
-                batteryLevel.style.background = '#ffbb33';
-            } else {
-                batteryLevel.style.background = '#00C851';
-            }
-        }
-
-        function downloadData(format) {
-            window.location.href = `/download/${format}`;
-        }
-
-        function fetchData() {
-            fetch('/history')
+        function updateData() {
+            fetch('/data')
                 .then(response => response.json())
                 .then(data => {
                     if (data.length > 0) {
-                        const lastData = data[data.length - 1];
-                        updateMetrics(lastData);
-                        data.forEach(updateChart);
+                        const latest = data[data.length - 1];
+                        
+                        document.getElementById('voltage').textContent = latest.voltaje.toFixed(2);
+                        document.getElementById('current').textContent = latest.corriente.toFixed(2);
+                        document.getElementById('power').textContent = latest.potencia.toFixed(2);
+                        document.getElementById('rotations').textContent = latest['# vueltas'];
+                        document.getElementById('battery').textContent = latest['Bateria'].toFixed(1);
+
+                        // Update chart
+                        chart.data.labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+                        chart.data.datasets[0].data = data.map(d => d.voltaje);
+                        chart.data.datasets[1].data = data.map(d => d.corriente);
+                        chart.data.datasets[2].data = data.map(d => d.potencia);
+                        chart.update();
                     }
                 })
                 .catch(error => console.error('Error fetching data:', error));
         }
 
+        function downloadData() {
+            window.location.href = '/download';
+        }
+
         // Initialize
         initChart();
-        fetchData();
-        // Update every 5 seconds
-        setInterval(fetchData, 5000);
+        updateData();
+        // Update every 10 seconds
+        setInterval(updateData, 10000);
     </script>
 </body>
 </html>
