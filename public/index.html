@@ -113,10 +113,10 @@
         </div>
         <div class="data-card">
             <h3>Battery</h3>
-            <div id="battery" class="value">--</div>
+            <div id="battery" class="value">-- %</div>
             <div class="battery-indicator">
-                <div id="batteryFill" class="battery-fill" style="width: 0%;"></div>
-            </div>
+            <div id="batteryFill" class="battery-fill" style="width: 0%;"></div>
+        </div>
         </div>
     </div>
 
@@ -174,7 +174,7 @@
                         document.getElementById('current').textContent = latest.corriente.toFixed(2);
                         document.getElementById('power').textContent = latest.potencia.toFixed(2);
                         document.getElementById('rotations').textContent = latest['# vueltas'];
-                        document.getElementById('battery').textContent = latest['Bateria'].toFixed(1);
+                        document.getElementById('battery').textContent = `${latest['Bateria'].toFixed(1)} %`;
 
                         const batteryFill = document.getElementById('batteryFill');
                         batteryFill.style.width = `${latest['Bateria']}%`;
