@@ -1,77 +1,63 @@
-// server.js
 const express = require('express');
+const cors = require('cors');
 const fs = require('fs');
+const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-let dataHistory = [];
-const MAX_HISTORY = 1000;
+let sensorData = [];
+let lastSaveTime = Date.now();
 const SAVE_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
-// Save data to file every 30 minutes
-function saveDataToFile() {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const data = dataHistory.map(entry => {
-        return `${entry.timestamp},${entry.voltaje},${entry.corriente},${entry.potencia},${entry['# vueltas']},${entry.bateriaPorcentaje}`;
-    }).join('\n');
-    
-    fs.writeFileSync(`data-${timestamp}.txt`, data);
-}
-
 app.post('/datos', (req, res) => {
-    const currentTime = Date.now();
-    const dataPoint = {
-        timestamp: new Date().toISOString(),
-        ...req.body
+    const data = {
+        ...req.body,
+        timestamp: new Date().toISOString()
     };
-    
-    dataHistory.push(dataPoint);
-    if (dataHistory.length > MAX_HISTORY) {
-        dataHistory.shift();
-    }
+    sensorData.push(data);
     
     // Save data every 30 minutes
-    if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
-        saveDataToFile();
-        lastSaveTime = currentTime;
+    if (Date.now() - lastSaveTime >= SAVE_INTERVAL) {
+        const filename = `sensor_data_${new Date().toISOString().slice(0,10)}.txt`;
+        const content = sensorData.map(d => JSON.stringify(d)).join('\n');
+        
+        fs.writeFile(path.join(__dirname, 'data', filename), content, (err) => {
+            if (err) console.error('Error saving data:', err);
+            lastSaveTime = Date.now();
+        });
     }
     
-    res.status(200).json({
-        message: 'Data received',
-        lastDataPoint: dataPoint
-    });
+    // Keep only last 100 readings in memory
+    if (sensorData.length > 100) {
+        sensorData = sensorData.slice(-100);
+    }
+    
+    res.json({ status: 'success' });
 });
 
-app.get('/download/:format', (req, res) => {
-    const { format } = req.params;
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+app.get('/data', (req, res) => {
+    res.json(sensorData);
+});
+
+app.get('/download', (req, res) => {
+    const filename = `sensor_data_${new Date().toISOString().slice(0,10)}.txt`;
+    const filePath = path.join(__dirname, 'data', filename);
     
-    let content = '';
-    const header = 'Timestamp,Voltage,Current,Power,Rotations,Battery\n';
-    
-    if (format === 'csv') {
-        content = header + dataHistory.map(entry => {
-            return `${entry.timestamp},${entry.voltaje},${entry.corriente},${entry.potencia},${entry['# vueltas']},${entry.bateriaPorcentaje}`;
-        }).join('\n');
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename=data-${timestamp}.csv`);
+    if (fs.existsSync(filePath)) {
+        res.download(filePath);
     } else {
-        content = dataHistory.map(entry => {
-            return `${entry.timestamp},${entry.voltaje},${entry.corriente},${entry.potencia},${entry['# vueltas']},${entry.bateriaPorcentaje}`;
-        }).join('\n');
-        res.setHeader('Content-Type', 'text/plain');
-        res.setHeader('Content-Disposition', `attachment; filename=data-${timestamp}.txt`);
+        res.status(404).send('No data file available');
     }
-    
-    res.send(content);
 });
 
-app.get('/history', (req, res) => {
-    res.json(dataHistory);
-});
+// Create data directory if it doesn't exist
+if (!fs.existsSync(path.join(__dirname, 'data'))) {
+    fs.mkdirSync(path.join(__dirname, 'data'));
+}
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
