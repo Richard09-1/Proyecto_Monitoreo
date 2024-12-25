@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solar Panel Monitoring</title>
+    <title>Panel Monitoring</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <style>
         body {
@@ -76,7 +76,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Solar Panel Monitoring System</h1>
+        <h1>SMonitoring System</h1>
         
         <div class="metrics">
             <div class="metric-card">
@@ -186,13 +186,13 @@
             document.getElementById('current').textContent = data.corriente.toFixed(2);
             document.getElementById('power').textContent = data.potencia.toFixed(2);
             document.getElementById('rotations').textContent = data['# vueltas'];
-            document.getElementById('battery-percentage').textContent = data.bateriaPorcentaje.toFixed(2) + '%';
+            document.getElementById('battery-percentage').textContent = data.bateriaPorcentaje.toFixed(2);
             
             const batteryLevel = document.getElementById('battery-level');
-            batteryLevel.style.height = data.bateriaPorcentaje.toFixed(2) + '%';
+            batteryLevel.style.height = data.bateriaPorcentaje.toFixed(2);
             
             // Update battery color based on level
-            const percentage = data[' % Bateria'];
+            const percentage = data.bateriaPorcentaje.toFixed(2);
             if (percentage <= 20) {
                 batteryLevel.style.background = '#ff4444';
             } else if (percentage <= 50) {
