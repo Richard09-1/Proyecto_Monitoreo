@@ -271,12 +271,19 @@
         }
 
         function downloadData() {
-            window.location.href = '/download';
+            const data = historicalData.map(entry => 
+                `Time: ${entry.time}, Voltage: ${entry.voltaje} V, Current: ${entry.corriente} mA, Power: ${entry.potencia} mW, Battery: ${entry.bateria} %`
+            ).join('\n');
+            const blob = new Blob([data], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'sensor_data.txt';
+            link.click();
         }
 
         initChart();
         updateData();
-        setInterval(updateData, 10000);
+        setInterval(updateData, 1000);
     </script>
 </body>
 </html>
